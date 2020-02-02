@@ -12,7 +12,7 @@ EMOTION = (
 )
 
 class Pln(models.Model):
-  text = models.TextField()
+  text = models.TextField(max_length=680)
   emotion = models.CharField(max_length=15, choices=EMOTION, default='joy')
   result = models.TextField(blank=True, null=True)
   res_eval = models.BooleanField(default=True)

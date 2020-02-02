@@ -27,35 +27,11 @@
                         <p>La emoción obtenida COINCIDE con la emoción ingresada por el autor</p>
                     {% else %}
                         <p>La emoción obtenida NO COINCIDE con la emoción ingresada por el autor</p>
-                    {% endif %}                     
-            <table class="tabla_CP">
-            	<thead>
-            		<tr>
-            			<th colspan="3">Detalle</th>
-            		</tr>
-            		<tr>
-            			<th> </th>
-            			<th>Emoción </th>
-            			<th>Porcentaje</th>
-            		</tr>
-            	</thead>
-                	{% for item in pln.list_res %}
-    	           <tbody>
-                      <tr>
-                        <td>{{ item }}</td>
-                        <td>{{ item }}</td>
-                      </tr>
-                    </tbody>            	
-                    {% endfor %}
-            </table>
-            <table>
-            {% for a, b in obj.zipped_list %}
-            	<tr>
-            		<td>{{ a }}</td>
-            		<td>{{ b }}</td>
-            	</tr>
-            {% endfor %}
-            </table>
+                    {% endif %} 
+                    <table class= "tabla_CP">
+                      {{ pln.list_res }}
+                      {{ pln.list_emotion }}
+                    </table>                        
                 </div>
         	</div>
 	</div>

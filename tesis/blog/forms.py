@@ -13,3 +13,12 @@ class PlnForm(forms.ModelForm):
     class Meta:
         model = Pln
         fields = ('text','emotion')
+        
+    def clean(self): 
+        super(PlnForm, self).clean() 
+        text = self.cleaned_data.get('text') 
+        if len(text) <10: 
+            self._errors['text'] = self.error_class([ 
+            'El texto debe contener como mínimo 10 Caracteres']) 
+            return self.cleaned_data 
+

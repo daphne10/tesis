@@ -9,6 +9,7 @@ from nltk.corpus import treebank
 from nltk.corpus import stopwords
 from collections import Counter
 import re
+import lbsa
 import pandas as pd
 from textblob import TextBlob
 from textblob import Word
@@ -30,7 +31,6 @@ from tsp_solver.greedy_numpy import solve_tsp
 from scipy.spatial.distance import pdist, squareform 
 from matplotlib.colors import ListedColormap
 from django.conf import settings
-from matplotlib.pyplot import *
 
 
 def open_image(path):
@@ -58,7 +58,7 @@ def get_pixel(image, i, j):
     return pixel
 
 def process_image(image,color_emocion):
-    n = 50000
+    n = 200000
     image_file = image.convert('1', dither=Image.NONE) # convert image to black and white
     #image_file.save('{}/images/result1.png'.format(settings.MEDIA_ROOT))
     
@@ -71,9 +71,7 @@ def process_image(image,color_emocion):
                                                 replace=False,  
                                                 size=n)]  
       
-    plt.figure(figsize=(8, 10), dpi=100) 
-    if len(color_emocion) == 0: 
-       color_emocion.append('#000')        
+    plt.figure(figsize=(6, 8), dpi=100)  
     v = np.random.randint(0, len(color_emocion), size=n)    
     plt.scatter([x[1] for x in chosen_black_indices],  
                 [x[0] for x in chosen_black_indices],
@@ -82,7 +80,7 @@ def process_image(image,color_emocion):
     plt.gca().invert_yaxis()  
     plt.xticks([])  
     plt.yticks([])
-    plt.savefig('{}/images/result.png'.format(settings.MEDIA_ROOT),bbox_inches='tight')
+    plt.savefig('{}/images/result.png'.format(settings.MEDIA_ROOT))
 
 # Create a Grayscale version of the image
 def convert_grayscale(image):
@@ -275,125 +273,6 @@ def convert_primary(image):
   # Return new image
   return new
 
-def pln_traducir(field):
-    if detect(field) != "en":
-        blob = TextBlob(field)
-        fieldT = str(blob.translate(to='en'))
-    else:
-        fieldT = field
-    
-    fieldT = fieldT.lower()
-    
-    return fieldT
-
-def pln_clean(fieldT):
-    output = str(TextBlob(fieldT).correct()) #Corregir texto - pendiente en español
-    
-    cleaned = re.sub(r'[^(a-zA-Z)\s]','', output) #Limpiar texto
-    cleaned = re.sub('[!#?,.:";]', '', cleaned) #Quitar signos de puntuación
-    return cleaned   
-
-def pln_tokenizar(cleaned):
-    stop_words = list(set(stopwords.words('english'))) #Obtener palabras de eliminación
-    tokens = nltk.word_tokenize(cleaned)   
-    #Lematizar
-    #wordnet_lemmatizer = WordNetLemmatizer()
-    #s2 = list()
-    #for w in tokens:
-    #    s2.append(wordnet_lemmatizer.lemmatize(w))
-    
-    #Stemm
-    #ps =PorterStemmer()
-    #s1 = list()
-    #for w in tokens:    
-    #   rootWord=ps.stem(w)
-    #   s1.append(rootWord)   
-    stopped = [w for w in tokens if not w in stop_words] #Guarda solo las palabras necesarias (stopped)     
-    return stopped
-    
-def pln_tagged(stopped):        
-    tagged = nltk.pos_tag(stopped) #Etiquetas POS
-    counts = Counter(tag for word,tag in tagged) #Validar si existe verbo,adjetivo y sustantivo
-    total = sum(counts.values())            
-    a = dict((word, float(count)/total) for word,count in counts.items())
-    entities = nltk.chunk.ne_chunk(tagged) #Entidades
-    return entities
-
-def pln_corpus(): 
-    filepath = "NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
-    emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
-    emolex_df.head(12)
-    
-    emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
-    emolex_words.head()
-    return emolex_words
-
-def pln_emocion(stopped):
-    tag_map = defaultdict(lambda : wn.NOUN)
-    tag_map['J'] = wn.ADJ
-    tag_map['V'] = wn.VERB
-    tag_map['R'] = wn.ADV
-    
-    lemma_function = WordNetLemmatizer()
-    
-    s3 = list()            
-    for token, tag in pos_tag(stopped):
-        lemma = lemma_function.lemmatize(token, tag_map[tag[0]])
-        s3.append(lemma)
-    anger, anticipation, disgust,fear,joy,sadness,surprise,trust,total=0,0,0,0,0,0,0,0,0
-    #emotion_test = list() 
-    emolex_words = pln_corpus()
-    for j in range(len(s3)):
-    #calificaciones_1 = (emolex_words[emolex_words.word == s3[j]])
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.anger == 1)].empty:
-          anger = anger +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.anticipation == 1)].empty:
-          anticipation = anticipation +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.disgust == 1)].empty:
-          disgust = disgust +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.fear == 1)].empty:
-          fear = fear +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.joy == 1)].empty:
-          joy = joy +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.sadness == 1)].empty:
-          sadness = sadness +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.surprise == 1)].empty:
-          surprise = surprise +1   
-        if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.trust == 1)].empty:
-          trust = trust +1   
-    #print(s3[j])
-    #print(calificaciones_1)
-    #emotion_test.append(calificaciones_1) 
-    total = len(s3)
-    list_valores = list()               
-    list_valores.append(round((anger/total)*100,2))
-    list_valores.append(round((anticipation/total)*100,2))
-    list_valores.append(round((disgust/total)*100,2))
-    list_valores.append(round((fear/total)*100,2))
-    list_valores.append(round((joy/total)*100,2))
-    list_valores.append(round((sadness/total)*100,2))
-    list_valores.append(round((surprise/total)*100,2))
-    list_valores.append(round((trust/total)*100,2))
-    return list_valores
-
-def pln_color(list_valores):
-    list_colors = list()
-    list_colors.append('#D40000') #anger
-    list_colors.append('#FF7D00') #anticipation
-    list_colors.append('#DE00DE') #disgust
-    list_colors.append('#A725DB') #fear
-    list_colors.append('#FFE854') #joy
-    list_colors.append('#0000C8') #sadness
-    list_colors.append('#0089E0') #surprise
-    list_colors.append('#00B400') #trust
-                       
-    color_emocion = list()
-    for j in range(len(list_valores)):
-        if not list_valores[j] <= 0.0:
-            color_emocion.append(list_colors[j])
-            
-    return color_emocion
-
 def pln_result(request, pk):
     pln = get_object_or_404(Pln, pk=pk)
     return render(request, 'blog/pln_result.html', {'pln': pln})
@@ -403,6 +282,16 @@ def pln_new(request):
     if request.method == "POST":
         form = PlnForm(request.POST)
         if form.is_valid():
+            list_colors = list()
+            list_colors.append('#D40000') #anger
+            list_colors.append('#FF7D00') #anticipation
+            list_colors.append('#DE00DE') #disgust
+            list_colors.append('#A725DB') #fear
+            list_colors.append('#FFE854') #joy
+            list_colors.append('#0000C8') #sadness
+            list_colors.append('#0089E0') #surprise
+            list_colors.append('#00B400') #trust
+                                  
             list_emociones = list() 
             list_emociones.append('anger')
             list_emociones.append('anticipation')
@@ -412,15 +301,65 @@ def pln_new(request):
             list_emociones.append('sadness')
             list_emociones.append('surprise')
             list_emociones.append('trust')
+
+            filepath = "NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
+            emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
+            emolex_df.head(12)
+
+            emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
+            emolex_words.head()
+
             #Obtener texto
             pln = form.save(commit=False)
             data = form.cleaned_data
             field = data['text']
             emotion_user = data['emotion']
+
             #--------------Procesar texto----------------------------
-            fieldT = pln_traducir(field)
-            cleaned = pln_clean(fieldT)
-            #Frecuencia            
+            if detect(field) != "en":
+                blob = TextBlob(field)
+                fieldT = str(blob.translate(to='en'))
+            else:
+                fieldT = field
+            
+            fieldT = fieldT.lower()
+            #output = str(TextBlob(fieldT).correct()) #Corregir texto - pendiente en español
+
+            cleaned = re.sub(r'[^(a-zA-Z)\s]','', fieldT) #Limpiar texto
+            cleaned = re.sub('[!#?,.:";]', '', cleaned) #Quitar signos de puntuación
+
+            stop_words = list(set(stopwords.words('english'))) #Obtener palabras de eliminación
+            tokens = nltk.word_tokenize(cleaned)
+
+            #Lematizar
+            #wordnet_lemmatizer = WordNetLemmatizer()
+            #s2 = list()
+            #for w in tokens:
+            #    s2.append(wordnet_lemmatizer.lemmatize(w))
+
+            #Stemm
+            #ps =PorterStemmer()
+            #s1 = list()
+            #for w in tokens:    
+            #   rootWord=ps.stem(w)
+            #   s1.append(rootWord)
+            
+            stopped = [w for w in tokens if not w in stop_words] #Guarda solo las palabras necesarias
+            
+            tag_map = defaultdict(lambda : wn.NOUN)
+            tag_map['J'] = wn.ADJ
+            tag_map['V'] = wn.VERB
+            tag_map['R'] = wn.ADV
+            
+            lemma_function = WordNetLemmatizer()
+            
+            s3 = list()            
+            for token, tag in pos_tag(stopped):
+                lemma = lemma_function.lemmatize(token, tag_map[tag[0]])
+                s3.append(lemma)
+               
+            #Frecuencia
+            
             words = nltk.tokenize.word_tokenize(cleaned)
             fd = nltk.FreqDist(words)
             #fd.plot()
@@ -442,11 +381,45 @@ def pln_new(request):
             #print(antonyms)
 
             #print(synonyms)
-            stopped = pln_tokenizar(cleaned)           
-            a = pln_tagged(stopped)
-            pln.list_emotion = a
-            list_valores = pln_emocion(stopped)  
 
+            tagged = nltk.pos_tag(stopped) #Etiquetas POS
+            counts = Counter(tag for word,tag in tagged) #Validar si existe verbo,adjetivo y sustantivo
+            total = sum(counts.values())
+            a = dict((word, float(count)/total) for word,count in counts.items())
+            entities = nltk.chunk.ne_chunk(tagged) #Entidades
+            anger, anticipation, disgust,fear,joy,sadness,surprise,trust,total=0,0,0,0,0,0,0,0,0
+            #emotion_test = list() 
+            for j in range(len(s3)):
+                #calificaciones_1 = (emolex_words[emolex_words.word == s3[j]])
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.anger == 1)].empty:
+                  anger = anger +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.anticipation == 1)].empty:
+                  anticipation = anticipation +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.disgust == 1)].empty:
+                  disgust = disgust +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.fear == 1)].empty:
+                  fear = fear +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.joy == 1)].empty:
+                  joy = joy +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.sadness == 1)].empty:
+                  sadness = sadness +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.surprise == 1)].empty:
+                  surprise = surprise +1   
+                if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.trust == 1)].empty:
+                  trust = trust +1   
+                #print(s3[j])
+                #print(calificaciones_1)
+                #emotion_test.append(calificaciones_1) 
+                total = len(s3)
+                list_valores = list()               
+                list_valores.append(round((anger/total)*100,2))
+                list_valores.append(round((anticipation/total)*100,2))
+                list_valores.append(round((disgust/total)*100,2))
+                list_valores.append(round((fear/total)*100,2))
+                list_valores.append(round((joy/total)*100,2))
+                list_valores.append(round((sadness/total)*100,2))
+                list_valores.append(round((surprise/total)*100,2))
+                list_valores.append(round((trust/total)*100,2))
             emotion_esp = ''
             emotion = list_emociones[list_valores.index(max(list_valores))]
             if emotion == 'anger':
@@ -470,46 +443,50 @@ def pln_new(request):
             #pln.result = '{}{}{}'.format(emotion,sa_lexicon.process(field),output)
             #pln.result = '{}{}{}{}{}{}'.format(tokens,fieldT,tagged,counts,a,rootWord)
             #pln.result = 'Total palabras: {}, anger: {}, anticipation: {}, disgust: {}, fear: {}, joy: {} , sadness: {}, surprise: {}, trust: {}, Resultado: {}'.format(len(s3),anger,anticipation,disgust,fear,joy,sadness,surprise,trust,list_emociones[list_valores.index(max(list_valores))])
-            #zipped_list =list()
             emotion = list_emociones[list_valores.index(max(list_valores))]
             pln.result = '{}'.format(emotion_esp)
-            list_res = []
-            for j in range(len(list_valores)):
-                list_res.append([list_emociones[j],list_valores[j]])
-            pln.list_res = list_res
-            #pln.list_res = zip(list_emociones,list_valores)
-            #zipped_list == zip(list_emociones, list_valores)     
+            list_prueba = list()
+            for i in range(len(list_valores)):
+                list_prueba.append([list_emociones[i],list_valores[i]])
+            pln.list_res = list_prueba
             if emotion_user == emotion:
                 pln.res_eval = True
             else:
                 pln.res_eval = False
                 
             # pln.image_result = mark_safe('<img src="{url}" width="{width}" height={height} />'.format(url,width,height))
-            '''Procesamiento de Imagen'''
+            pln.image = '/images/{}.png'.format(emotion)
             
+            color_emocion = list()
+            for j in range(len(list_valores)):
+                if not list_valores[j] <= 0.0:
+                    color_emocion.append(list_colors[j])
+                                
             original = open_image('{}/images/{}.png'.format(settings.MEDIA_ROOT,emotion))
-            color_emocion = pln_color(list_valores)
-            process_image(original,color_emocion)   
-            """            original2 = open_image('{}/images/result.png'.format(settings.MEDIA_ROOT))
+            """new = convert_grayscale(original)
+            save_image(new, 'C:/app-tesis/django/tesis/media/images/Prinny_gray.png')  
             
             # Convert to Halftoning and save
-            new = convert_halftoning(original2)
-            save_image(new,'{}/images/convert_halftoning.png'.format(settings.MEDIA_ROOT))
+            new = convert_halftoning(original)
+            save_image(new, 'C:/app-tesis/django/tesis/media/images/Prinny_half.png')
             
             # Convert to Dithering and save
-            new = convert_dithering(original2)
-            save_image(new,'{}/images/convert_dithering.png'.format(settings.MEDIA_ROOT))
+            new = convert_dithering(original)
+            save_image(new, 'C:/app-tesis/django/tesis/media/images/Prinny_dither.png')
             
             # Convert to Primary and save
-            new = convert_primary(original2)
-            save_image(new,'{}/images/convert_primary.png'.format(settings.MEDIA_ROOT))"""
-       
+            new = convert_primary(original)
+            save_image(new, 'C:/app-tesis/django/tesis/media/images/Prinny_primary.png')
+            
+            # Convert to Primary and save
+              
+            pln.image_modify = 'C:/app-tesis/django/tesis/media/images/Prinny_gray.png'"""
+            process_image(original,color_emocion)            
             #pln.result = '{}{}{}'.format(tokens,stopped,calificaciones_1,list)
             #pln.image = form.cleaned_data['image']
 
             # = treebank.parsed_sents('wsj_0001.mrg')[0]
             #t.draw() #árbol sintáctico
-            pln.image = '/images/{}.png'.format(emotion)
             pln.image_modify = '{}/images/result.png'.format(settings.MEDIA_ROOT)
             pln.save()
             return redirect('pln_result', pk=pln.pk)
