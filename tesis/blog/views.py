@@ -70,8 +70,14 @@ def process_image(image,color_emocion):
             per.append(color_emocion[j][1])
         for l in range(len(per)):
             total_per = total_per+(per[l])
+        if len(black_indices) < nt:
+            nt = len(black_indices)
         for j in range(len(colorl)):
             n = int((nt * per[j])//total_per)
+            print("n",n)
+            print("total_per",total_per)
+            print("per[j]",per[j])
+            print("black_indices",len(black_indices))
             chosen_black_indices = black_indices[  
                                    np.random.choice(black_indices.shape[0],  
                                                     replace=False,  
@@ -323,11 +329,10 @@ def pln_new(request):
 
             emotion_esp = ''
             emotion = list_emociones[list_valores.index(max(list_valores))]
-            print(list_valores.index(max(list_valores)))
-            if list_valores.index(max(list_valores)) == 0:
+            if list_valores[list_valores.index(max(list_valores))] == 0:
                 emotion = 'neutra'
                 emotion_esp = 'Neutra'
-            else:               
+            else: 
                 if emotion == 'anger':
                     emotion_esp = 'Enojo'
                 elif emotion == 'anticipation':
@@ -366,7 +371,7 @@ def pln_new(request):
                 pln.res_eval = False
                 
             '''Procesamiento de Imagen'''
-
+            print("imagen",emotion)
             original = open_image('{}/images/{}.png'.format(settings.MEDIA_ROOT,emotion))
             color_emocion = pln_color(list_valores)
             process_image(original,color_emocion) 
