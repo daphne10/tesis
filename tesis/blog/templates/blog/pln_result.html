@@ -2,38 +2,93 @@
 
 {% block content %}
 <div class="pln">
+    <p class="txt2">Texto ingresado</p>
+    <div class = "centrar">
+    	<p>{{ pln.text }}</p>
+    </div>
     <div class="container-fluid">
     	<div class="row">
     		<div class="col-md-6">
-        	  <div class = "centrar">
-    			<p>{{ pln.text }}</p>
-    		  </div>
+        		</br><p class="txt">Imagen Generada</p></br>
+                <img src="{{ pln.image_modify.url }}" width= "250px" height= "400px"/>
     		</div>
     		<div class="col-md-6">
-                <img src="{{ pln.image_modify.url }}" width= "250px" height= "400px"/>
-                <p></p>
-                
+    		            	</br><p class="txt">Detalle</p>
                 <div class="tab">
                   <button class="tablinks" onclick="tabE(event, 'tab1')">Emoción Generada</button>
                   <button class="tablinks" onclick="tabE(event, 'tab2')">Resultado Detallado</button>
-                </div>
-                
+                </div>                  
                 <div id="tab1" class="tabcontent">
                     <p>La emoción obtenida del texto es: {{ pln.result }}</p>
-                </div>
-                
+                </div>                    
                 <div id="tab2" class="tabcontent">
                     {% if pln.res_eval == True %}
                         <p>La emoción obtenida COINCIDE con la emoción ingresada por el autor</p>
                     {% else %}
                         <p>La emoción obtenida NO COINCIDE con la emoción ingresada por el autor</p>
-                    {% endif %} 
-                    <table class= "tabla_CP">
-                      {{ pln.list_res }}
-                      {{ pln.list_emotion }}
-                    </table>                        
+                    {% endif %}  
+                    <table class="tabla_CP">
+                    	<thead>
+                    		<tr>
+                    			<th>Emoción</th>
+                    			<th>Porcentaje</th>
+                    		</tr>
+                    	</thead>
+                    	<tbody>
+                    		<tr>
+                    			<td>Enojo</td>
+                    			<td>{{ pln.anger }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	<tbody>
+                    		<tr>
+                    			<td>Anticipación</td>
+                    			<td>{{ pln.anticip }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	<tbody>
+                    		<tr>
+                    			<td>Asco</td>
+                    			<td>{{ pln.disgust }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	<tbody>
+                    		<tr>
+                    			<td>Miedo</td>
+                    			<td>{{ pln.fear }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	                <tbody>
+                    		<tr>
+                    			<td>Alegría</td>
+                    			<td>{{ pln.joy }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	<tbody>
+                    		<tr>
+                    			<td>Tristeza</td>
+                    			<td>{{ pln.sadness }}%</td>
+                    		</tr>
+                    	</tbody>
+                    	<tbody>
+                    		<tr>
+                    			<td>Sorpresa</td>
+                    			<td>{{ pln.surprise }}%</td>
+                    		</tr>
+                    	</tbody>
+                    <tbody>
+                    		<tr>
+                    			<td>Confianza</td>
+                    			<td>{{ pln.trust }}%</td>
+                    		</tr>
+                    	</tbody>
+                    </table>                                       
                 </div>
         	</div>
-	</div>
+    	</div>
+    </div>
 </div>
+	<div>
+        <a href="{% url 'pln_new' %}" class="button_volver">Ingresar nuevo texto</a>
+    </div>
 {% endblock %}

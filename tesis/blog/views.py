@@ -1,37 +1,36 @@
 from django.shortcuts import render
 from django.utils import timezone
 from .models import Pln
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from .forms import PlnForm
 from django.shortcuts import redirect
 import nltk
-from nltk.corpus import treebank
+#from nltk.corpus import treebank
 from nltk.corpus import stopwords
 from collections import Counter
 import re
 import pandas as pd
 from textblob import TextBlob
-from textblob import Word
-from nltk.stem import PorterStemmer
+#from textblob import Word
+#from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
-from nltk.stem.wordnet import WordNetLemmatizer
+#from nltk.stem.wordnet import WordNetLemmatizer
 from nltk import word_tokenize, pos_tag
 from collections import defaultdict
 from langdetect import detect
 from PIL import Image
 import numpy as np
-import os
-import math
+#import os
+#import math
 import matplotlib.pyplot as plt
-import numpy as np
-import urllib.request
-from tsp_solver.greedy_numpy import solve_tsp
-from scipy.spatial.distance import pdist, squareform 
-from matplotlib.colors import ListedColormap
+#import numpy as np
+#import urllib.request
+#from tsp_solver.greedy_numpy import solve_tsp
+#from scipy.spatial.distance import pdist, squareform 
+#from matplotlib.colors import ListedColormap
 from django.conf import settings
-from matplotlib.pyplot import *
-
+#from matplotlib.pyplot import *
 
 def open_image(path):
   newImage = Image.open(path)
@@ -54,122 +53,41 @@ def get_pixel(image, i, j):
       return None
 
     # Get Pixel
-    pixel = image.getpixel((i, j))
+    pixel = image.getpixel((i, j))  
     return pixel
 
 def process_image(image,color_emocion):
-    n = 50000
-    image_file = image.convert('1', dither=Image.NONE) # convert image to black and white
-    #image_file.save('{}/images/result1.png'.format(settings.MEDIA_ROOT))
-    
-    bw_image_array = np.array(image_file, dtype=np.int)  
-    black_indices = np.argwhere(bw_image_array == 0)  
-    # Changing "size" to a larger value makes this algorithm take longer,  
-    # but provides more granularity to the portrait  
-    chosen_black_indices = black_indices[  
-                               np.random.choice(black_indices.shape[0],  
-                                                replace=False,  
-                                                size=n)]  
-      
-    plt.figure(figsize=(8, 10), dpi=100) 
-    if len(color_emocion) == 0: 
-       color_emocion.append('#000')        
-    v = np.random.randint(0, len(color_emocion), size=n)    
-    plt.scatter([x[1] for x in chosen_black_indices],  
-                [x[0] for x in chosen_black_indices],
-                s = 0.5,
-                c=np.take(color_emocion, v))
-    plt.gca().invert_yaxis()  
-    plt.xticks([])  
-    plt.yticks([])
-    plt.savefig('{}/images/result.png'.format(settings.MEDIA_ROOT),bbox_inches='tight')
+    if len(color_emocion) != 0: 
+        nt,n,total_per = 50000,0,0
+        image_file = image.convert('1', dither=Image.NONE)        
+        bw_image_array = np.array(image_file, dtype=np.int)  
+        black_indices = np.argwhere(bw_image_array == 0)  
+        plt.figure(figsize=(8, 10), dpi=100) 
+        colorl = list();
+        per = list();
+        for j in range(len(color_emocion)):
+            colorl.append(color_emocion[j][0])
+            per.append(color_emocion[j][1])
+        for l in range(len(per)):
+            total_per = total_per+(per[l])
+        for j in range(len(colorl)):
+            n = int((nt * per[j])//total_per)
+            chosen_black_indices = black_indices[  
+                                   np.random.choice(black_indices.shape[0],  
+                                                    replace=False,  
+                                                    size=n)]  
+            plt.scatter([x[1] for x in chosen_black_indices],
+                        [x[0] for x in chosen_black_indices],
+                        s = 0.5,
+                        c=colorl[j])       
+        plt.gca().invert_yaxis()
+        plt.xticks([])  
+        plt.yticks([])
+        plt.savefig('{}/images/result.png'.format(settings.MEDIA_ROOT),bbox_inches='tight')
+    else:
+      new = convert_dithering(image)
+      save_image(new,'{}/images/result.png'.format(settings.MEDIA_ROOT))
 
-# Create a Grayscale version of the image
-def convert_grayscale(image):
-  # Get size
-  width, height = image.size
-
-  # Create new Image and a Pixel Map
-  new = create_image(width, height)
-  pixels = new.load()
-
-  # Transform to grayscale
-  for i in range(width):
-    for j in range(height):
-      # Get Pixel
-      pixel = get_pixel(image, i, j)
-
-      # Get R, G, B values (This are int from 0 to 255)
-      red =   pixel[0]
-      green = pixel[1]
-      blue =  pixel[2]
-
-      # Transform to grayscale
-      gray = (red * 0.299) + (green * 0.587) + (blue * 0.114)
-
-      # Set Pixel in new image
-      pixels[i, j] = (int(gray), int(gray), int(gray))
-
-    # Return new image
-    return new
-
-# Create a Half-tone version of the image
-def convert_halftoning(image):
-  # Get size
-  width, height = image.size
-
-  # Create new Image and a Pixel Map
-  new = create_image(width, height)
-  pixels = new.load()
-
-  # Transform to half tones
-  for i in range(0, width, 2):
-    for j in range(0, height, 2):
-      # Get Pixels
-      p1 = get_pixel(image, i, j)
-      p2 = get_pixel(image, i, j + 1)
-      p3 = get_pixel(image, i + 1, j)
-      p4 = get_pixel(image, i + 1, j + 1)
-      
-      # Transform to grayscale
-      gray1 = (p1[0] * 0.299) + (p1[1] * 0.587) + (p1[2] * 0.114)
-      gray2 = (p2[0] * 0.299) + (p2[1] * 0.587) + (p2[2] * 0.114)
-      gray3 = (p3[0] * 0.299) + (p3[1] * 0.587) + (p3[2] * 0.114)
-      gray4 = (p4[0] * 0.299) + (p4[1] * 0.587) + (p4[2] * 0.114)
-
-      # Saturation Percentage
-      sat = (gray1 + gray2 + gray3 + gray4) / 4
-
-      # Draw white/black depending on saturation
-      if sat > 223:
-        pixels[i, j]         = (255, 255, 255) # White
-        pixels[i, j + 1]     = (255, 255, 255) # White
-        pixels[i + 1, j]     = (255, 255, 255) # White
-        pixels[i + 1, j + 1] = (255, 255, 255) # White
-      elif sat > 159:
-        pixels[i, j]         = (255, 255, 255) # White
-        pixels[i, j + 1]     = (0, 0, 0)       # Black
-        pixels[i + 1, j]     = (255, 255, 255) # White
-        pixels[i + 1, j + 1] = (255, 255, 255) # White
-      elif sat > 95:
-        pixels[i, j]         = (255, 255, 255) # White
-        pixels[i, j + 1]     = (0, 0, 0)       # Black
-        pixels[i + 1, j]     = (0, 0, 0)       # Black
-        pixels[i + 1, j + 1] = (255, 255, 255) # White
-      elif sat > 32:
-        pixels[i, j]         = (0, 0, 0)       # Black
-        pixels[i, j + 1]     = (255, 255, 255) # White
-        pixels[i + 1, j]     = (0, 0, 0)       # Black
-        pixels[i + 1, j + 1] = (0, 0, 0)       # Black
-      else:
-        pixels[i, j]         = (0, 0, 0)         # Black
-        pixels[i, j + 1]     = (0, 0, 0)       # Black
-        pixels[i + 1, j]     = (0, 0, 0)       # Black
-        pixels[i + 1, j + 1] = (0, 0, 0)       # Black
-  # Return new image
-  return new
-
-# Return color value depending on quadrant and saturation
 def get_saturation(value, quadrant):
   if value > 223:
     return 255
@@ -231,49 +149,7 @@ def convert_dithering(image):
       pixels[i + 1, j]     = (r[2], g[2], b[2])
       pixels[i + 1, j + 1] = (r[3], g[3], b[3])
 
-  # Return new image
-  return new
-
-
-# Create a Primary Colors version of the image
-def convert_primary(image):
-  # Get size
-  width, height = image.size
-
-  # Create new Image and a Pixel Map
-  new = create_image(width, height)
-  pixels = new.load()
-
-  # Transform to primary
-  for i in range(width):
-    for j in range(height):
-      # Get Pixel
-      pixel = get_pixel(image, i, j)
-
-      # Get R, G, B values (This are int from 0 to 255)
-      red =   pixel[0]
-      green = pixel[1]
-      blue =  pixel[2]
-
-      # Transform to primary
-      if red > 127:
-        red = 255
-      else:
-        red = 0
-      if green > 127:
-        green = 255
-      else:
-        green = 0
-      if blue > 127:
-        blue = 255
-      else:
-        blue = 0
-
-      # Set Pixel in new image
-      pixels[i, j] = (int(red), int(green), int(blue))
-
-  # Return new image
-  return new
+  return new 
 
 def pln_traducir(field):
     if detect(field) != "en":
@@ -313,9 +189,9 @@ def pln_tokenizar(cleaned):
     
 def pln_tagged(stopped):        
     tagged = nltk.pos_tag(stopped) #Etiquetas POS
-    counts = Counter(tag for word,tag in tagged) #Validar si existe verbo,adjetivo y sustantivo
+    '''counts = Counter(tag for word,tag in tagged) #Validar si existe verbo,adjetivo y sustantivo
     total = sum(counts.values())            
-    a = dict((word, float(count)/total) for word,count in counts.items())
+    a = dict((word, float(count)/total) for word,count in counts.items())'''
     entities = nltk.chunk.ne_chunk(tagged) #Entidades
     return entities
 
@@ -386,12 +262,10 @@ def pln_color(list_valores):
     list_colors.append('#0000C8') #sadness
     list_colors.append('#0089E0') #surprise
     list_colors.append('#00B400') #trust
-                       
     color_emocion = list()
     for j in range(len(list_valores)):
         if not list_valores[j] <= 0.0:
-            color_emocion.append(list_colors[j])
-            
+            color_emocion.append([list_colors[j],list_valores[j]])
     return color_emocion
 
 def pln_result(request, pk):
@@ -449,60 +323,53 @@ def pln_new(request):
 
             emotion_esp = ''
             emotion = list_emociones[list_valores.index(max(list_valores))]
-            if emotion == 'anger':
-                emotion_esp = 'Enojo'
-            elif emotion == 'anticipation':
-                emotion_esp = 'Anticipación'
-            elif emotion == 'disgust':
-                emotion_esp = 'Asco'
-            elif emotion == 'fear':
-                emotion_esp = 'Miedo'
-            elif emotion == 'joy':
-                emotion_esp = 'Alegría'
-            elif emotion == 'sadness':
-                emotion_esp = 'Tristeza'
-            elif emotion == 'surprise':
-                emotion_esp = 'Sorpresa'
-            elif emotion == 'trust':
-                emotion_esp = 'Confianza'
-            else:
+            print(list_valores.index(max(list_valores)))
+            if list_valores.index(max(list_valores)) == 0:
+                emotion = 'neutra'
                 emotion_esp = 'Neutra'
+            else:               
+                if emotion == 'anger':
+                    emotion_esp = 'Enojo'
+                elif emotion == 'anticipation':
+                    emotion_esp = 'Anticipación'
+                elif emotion == 'disgust':
+                    emotion_esp = 'Asco'
+                elif emotion == 'fear':
+                    emotion_esp = 'Miedo'
+                elif emotion == 'joy':
+                    emotion_esp = 'Alegría'
+                elif emotion == 'sadness':
+                    emotion_esp = 'Tristeza'
+                elif emotion == 'surprise':
+                    emotion_esp = 'Sorpresa'
+                elif emotion == 'trust':
+                    emotion_esp = 'Confianza'
+                else:
+                    emotion_esp = 'Neutra'
             #pln.result = '{}{}{}'.format(emotion,sa_lexicon.process(field),output)
             #pln.result = '{}{}{}{}{}{}'.format(tokens,fieldT,tagged,counts,a,rootWord)
             #pln.result = 'Total palabras: {}, anger: {}, anticipation: {}, disgust: {}, fear: {}, joy: {} , sadness: {}, surprise: {}, trust: {}, Resultado: {}'.format(len(s3),anger,anticipation,disgust,fear,joy,sadness,surprise,trust,list_emociones[list_valores.index(max(list_valores))])
             #zipped_list =list()
-            emotion = list_emociones[list_valores.index(max(list_valores))]
             pln.result = '{}'.format(emotion_esp)
-            list_res = []
-            for j in range(len(list_valores)):
-                list_res.append([list_emociones[j],list_valores[j]])
-            pln.list_res = list_res
-            #pln.list_res = zip(list_emociones,list_valores)
+            pln.anger = list_valores[0]
+            pln.anticip = list_valores[1] 
+            pln.disgust = list_valores[2]
+            pln.fear = list_valores[3]
+            pln.joy = list_valores[4]
+            pln.sadness = list_valores[5]
+            pln.surprise = list_valores[6]
+            pln.trust = list_valores[7]
             #zipped_list == zip(list_emociones, list_valores)     
             if emotion_user == emotion:
                 pln.res_eval = True
             else:
                 pln.res_eval = False
                 
-            # pln.image_result = mark_safe('<img src="{url}" width="{width}" height={height} />'.format(url,width,height))
             '''Procesamiento de Imagen'''
-            
+
             original = open_image('{}/images/{}.png'.format(settings.MEDIA_ROOT,emotion))
             color_emocion = pln_color(list_valores)
-            process_image(original,color_emocion)   
-            """            original2 = open_image('{}/images/result.png'.format(settings.MEDIA_ROOT))
-            
-            # Convert to Halftoning and save
-            new = convert_halftoning(original2)
-            save_image(new,'{}/images/convert_halftoning.png'.format(settings.MEDIA_ROOT))
-            
-            # Convert to Dithering and save
-            new = convert_dithering(original2)
-            save_image(new,'{}/images/convert_dithering.png'.format(settings.MEDIA_ROOT))
-            
-            # Convert to Primary and save
-            new = convert_primary(original2)
-            save_image(new,'{}/images/convert_primary.png'.format(settings.MEDIA_ROOT))"""
+            process_image(original,color_emocion) 
        
             #pln.result = '{}{}{}'.format(tokens,stopped,calificaciones_1,list)
             #pln.image = form.cleaned_data['image']
@@ -515,15 +382,4 @@ def pln_new(request):
             return redirect('pln_result', pk=pln.pk)
     else:
         form = PlnForm()
-    return render(request, 'blog/pln_edit.html', {'form': form})
-def pln_edit(request, pk):
-    pln = get_object_or_404(Pln, pk=pk)
-    if request.method == "POST":
-        form = PlnForm(request.POST, instance=pln)
-        if form.is_valid():
-            pln = form.save(commit=False)
-            pln.save()
-            return redirect('pln_edit', pk=pln.pk)
-    else:
-        form = PlnForm(instance=pln)
     return render(request, 'blog/pln_edit.html', {'form': form})

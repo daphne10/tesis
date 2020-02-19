@@ -1,7 +1,14 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-    <h2>Ingrese el texto aquí</h2>
+<h2 >Ingrese el texto aquí&nbsp;↓&nbsp;<br>
+    <span style="font-size:9px;">(El texto a ingresar debe contener como mínimo un
+        <a class="desc" data-placement="top" data-toggle="tooltip" href="#" title="Acción y/o estado del actor">Verbo</a>, un
+        <a class="desc" data-placement="bottom" data-toggle="tooltip" href="#" title="Seres y/o entidades">Sustantivo</a> y un
+        <a class="desc" data-placement="left" data-toggle="tooltip" href="#" title="Cualidades y/o descripciones del sujeto">Adjetivo</a> o 
+        <a class="desc" data-placement="left" data-toggle="tooltip" href="#" title="Circunstancias que modifican al verbo, adjetivo u adverbio">Adverbio</a>&nbsp;)&nbsp;
+    </span>
+</h2>
     <form method="POST" class="pln-form">{% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="save btn btn-default">Ver Resultado Final</button>
