@@ -60,39 +60,42 @@ def process_image(image,color_emocion):
     if len(color_emocion) != 0: 
         nt,n,total_per = 50000,0,0
         image_file = image.convert('1', dither=Image.NONE)        
-        bw_image_array = np.array(image_file, dtype=np.int)  
-        black_indices = np.argwhere(bw_image_array == 0)  
+        bw_image_array = np.array(image_file, dtype=np.int)
+        save_image(image_file,'{}/images/image_file.png'.format(settings.MEDIA_ROOT)) 
+        black_indices = np.argwhere(bw_image_array == 0) 
+        #save_image(black_indices,'{}/images/black_indices.png'.format(settings.MEDIA_ROOT)) 
         plt.figure(figsize=(8, 10), dpi=100) 
         colorl = list();
         per = list();
+
         for j in range(len(color_emocion)):
             colorl.append(color_emocion[j][0])
             per.append(color_emocion[j][1])
+
         for l in range(len(per)):
             total_per = total_per+(per[l])
+
         if len(black_indices) < nt:
             nt = len(black_indices)
+
         for j in range(len(colorl)):
             n = int((nt * per[j])//total_per)
-            print("n",n)
-            print("total_per",total_per)
-            print("per[j]",per[j])
-            print("black_indices",len(black_indices))
             chosen_black_indices = black_indices[  
                                    np.random.choice(black_indices.shape[0],  
                                                     replace=False,  
-                                                    size=n)]  
+                                                    size=n)] 
             plt.scatter([x[1] for x in chosen_black_indices],
                         [x[0] for x in chosen_black_indices],
                         s = 0.5,
-                        c=colorl[j])       
+                        c=colorl[j])
         plt.gca().invert_yaxis()
         plt.xticks([])  
         plt.yticks([])
         plt.savefig('{}/images/result.png'.format(settings.MEDIA_ROOT),bbox_inches='tight')
     else:
-      new = convert_dithering(image)
-      save_image(new,'{}/images/result.png'.format(settings.MEDIA_ROOT))
+    	new = convert_dithering(image)
+    	#new = image.convert('1', dither=Image.NONE)
+    	save_image(new,'{}/images/result.png'.format(settings.MEDIA_ROOT))
 
 def get_saturation(value, quadrant):
   if value > 223:
@@ -154,7 +157,6 @@ def convert_dithering(image):
       pixels[i, j + 1]     = (r[1], g[1], b[1])
       pixels[i + 1, j]     = (r[2], g[2], b[2])
       pixels[i + 1, j + 1] = (r[3], g[3], b[3])
-
   return new 
 
 def pln_traducir(field):
@@ -169,28 +171,15 @@ def pln_traducir(field):
     return fieldT
 
 def pln_clean(fieldT):
-    output = str(TextBlob(fieldT).correct()) #Corregir texto - pendiente en español
-    
-    cleaned = re.sub(r'[^(a-zA-Z)\s]','', output) #Limpiar texto
-    cleaned = re.sub('[!#?,.:";]', '', cleaned) #Quitar signos de puntuación
-    return cleaned   
+		output = str(TextBlob(fieldT).correct()) #Corregir texto - pendiente en español
+		cleaned = re.sub(r'[^(a-zA-Z)\s]','', output) #Limpiar texto
+		cleaned = re.sub('[!#?,.:";]', '', cleaned) #Quitar signos de puntuación
+		return cleaned   
 
 def pln_tokenizar(cleaned):
     stop_words = list(set(stopwords.words('english'))) #Obtener palabras de eliminación
-    tokens = nltk.word_tokenize(cleaned)   
-    #Lematizar
-    #wordnet_lemmatizer = WordNetLemmatizer()
-    #s2 = list()
-    #for w in tokens:
-    #    s2.append(wordnet_lemmatizer.lemmatize(w))
-    
-    #Stemm
-    #ps =PorterStemmer()
-    #s1 = list()
-    #for w in tokens:    
-    #   rootWord=ps.stem(w)
-    #   s1.append(rootWord)   
-    stopped = [w for w in tokens if not w in stop_words] #Guarda solo las palabras necesarias (stopped)     
+    tokens = nltk.word_tokenize(cleaned) 
+    stopped = [w for w in tokens if not w in stop_words] #Guarda solo las palabras necesarias (stopped)
     return stopped
     
 def pln_tagged(stopped):        
@@ -208,6 +197,8 @@ def pln_corpus():
     
     emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
     emolex_words.head()
+    tagged = nltk.pos_tag(emolex_words[emolex_words.anticipation == 1].word)
+    counts = Counter(tag for word,tag in tagged)
     return emolex_words
 
 def pln_emocion(stopped):
@@ -216,15 +207,20 @@ def pln_emocion(stopped):
     tag_map['V'] = wn.VERB
     tag_map['R'] = wn.ADV
     
-    lemma_function = WordNetLemmatizer()
-    
-    s3 = list()            
+    lemma_function = WordNetLemmatizer() #función de lematización
+    #print("lemma_function",lemma_function)
+    s3 = list() 
     for token, tag in pos_tag(stopped):
-        lemma = lemma_function.lemmatize(token, tag_map[tag[0]])
-        s3.append(lemma)
+	    lemma = lemma_function.lemmatize(token, tag_map[tag[0]])
+	    prueba = lemma_function.lemmatize(token)
+	    s3.append(lemma)
     anger, anticipation, disgust,fear,joy,sadness,surprise,trust,total=0,0,0,0,0,0,0,0,0
     #emotion_test = list() 
+    sustantivo,adjetivo,adverbio,verbo=0,0,0,0
     emolex_words = pln_corpus()
+    #for j in len(emolex_words):
+
+    #print(emolex_words)
     for j in range(len(s3)):
     #calificaciones_1 = (emolex_words[emolex_words.word == s3[j]])
         if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.anger == 1)].empty:
@@ -243,11 +239,10 @@ def pln_emocion(stopped):
           surprise = surprise +1   
         if not emolex_words[(emolex_words.word == s3[j]) & (emolex_words.trust == 1)].empty:
           trust = trust +1   
-    #print(s3[j])
-    #print(calificaciones_1)
-    #emotion_test.append(calificaciones_1) 
-    total = len(s3)
-    list_valores = list()               
+    total = anger+anticipation+disgust+fear+joy+sadness+surprise+trust
+    list_valores = list()  
+    if (total<=0):
+    	total = len(s3)             
     list_valores.append(round((anger/total)*100,2))
     list_valores.append(round((anticipation/total)*100,2))
     list_valores.append(round((disgust/total)*100,2))
@@ -260,14 +255,14 @@ def pln_emocion(stopped):
 
 def pln_color(list_valores):
     list_colors = list()
-    list_colors.append('#D40000') #anger
-    list_colors.append('#FF7D00') #anticipation
-    list_colors.append('#DE00DE') #disgust
-    list_colors.append('#A725DB') #fear
-    list_colors.append('#FFE854') #joy
-    list_colors.append('#0000C8') #sadness
-    list_colors.append('#0089E0') #surprise
-    list_colors.append('#00B400') #trust
+    list_colors.append('#E43054') #anger
+    list_colors.append('#F2993A') #anticipation
+    list_colors.append('#9F78BA') #disgust
+    list_colors.append('#35A450') #fear
+    list_colors.append('#FADB4D') #joy
+    list_colors.append('#729DC9') #sadness
+    list_colors.append('#35A450') #surprise
+    list_colors.append('#99CC33') #trust
     color_emocion = list()
     for j in range(len(list_valores)):
         if not list_valores[j] <= 0.0:
@@ -303,30 +298,10 @@ def pln_new(request):
             #Frecuencia            
             words = nltk.tokenize.word_tokenize(cleaned)
             fd = nltk.FreqDist(words)
-            #fd.plot()
-            #Sinonimos y definiciones
-            #text_word = Word('safe')
-            #text_word.definitions
-            #synonyms = set()
-            #for synset in text_word.synsets:
-            #    for lemma in synset.lemmas():
-            #        synonyms.add(lemma.name())
-            #text_word = Word('safe')
-
-            #antonyms = set()
-            #for synset in text_word.synsets:
-            #    for lemma in synset.lemmas():
-            #        if lemma.antonyms():
-            #            antonyms.add(lemma.antonyms()[0].name())
-
-            #print(antonyms)
-
-            #print(synonyms)
             stopped = pln_tokenizar(cleaned)           
             a = pln_tagged(stopped)
             pln.list_emotion = a
             list_valores = pln_emocion(stopped)  
-
             emotion_esp = ''
             emotion = list_emociones[list_valores.index(max(list_valores))]
             if list_valores[list_valores.index(max(list_valores))] == 0:
@@ -351,10 +326,6 @@ def pln_new(request):
                     emotion_esp = 'Confianza'
                 else:
                     emotion_esp = 'Neutra'
-            #pln.result = '{}{}{}'.format(emotion,sa_lexicon.process(field),output)
-            #pln.result = '{}{}{}{}{}{}'.format(tokens,fieldT,tagged,counts,a,rootWord)
-            #pln.result = 'Total palabras: {}, anger: {}, anticipation: {}, disgust: {}, fear: {}, joy: {} , sadness: {}, surprise: {}, trust: {}, Resultado: {}'.format(len(s3),anger,anticipation,disgust,fear,joy,sadness,surprise,trust,list_emociones[list_valores.index(max(list_valores))])
-            #zipped_list =list()
             pln.result = '{}'.format(emotion_esp)
             pln.anger = list_valores[0]
             pln.anticip = list_valores[1] 
@@ -371,16 +342,9 @@ def pln_new(request):
                 pln.res_eval = False
                 
             '''Procesamiento de Imagen'''
-            print("imagen",emotion)
             original = open_image('{}/images/{}.png'.format(settings.MEDIA_ROOT,emotion))
             color_emocion = pln_color(list_valores)
             process_image(original,color_emocion) 
-       
-            #pln.result = '{}{}{}'.format(tokens,stopped,calificaciones_1,list)
-            #pln.image = form.cleaned_data['image']
-
-            # = treebank.parsed_sents('wsj_0001.mrg')[0]
-            #t.draw() #árbol sintáctico
             pln.image = '/images/{}.png'.format(emotion)
             pln.image_modify = '{}/images/result.png'.format(settings.MEDIA_ROOT)
             pln.save()

@@ -20,9 +20,7 @@ def pln_entity(field):
     vb = 0 #verbo
     jj = 0 #adjetivo (jj) o adverbio(rb)
     ent = [0,0,0]
-    print(counts)
     for v in counts:
-     print(v)
      if nn<=0 or jj<=0 or vb<=0:
         if v[:2] == 'NN':
             ent[0] = nn+1
